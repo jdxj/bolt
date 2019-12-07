@@ -6,9 +6,16 @@ Bolt is a pure Go key/value store inspired by [Howard Chu's][hyc_symas]
 fast, and reliable database for projects that don't require a full database
 server such as Postgres or MySQL.
 
+Bolt 是纯粹的 Go key/value 存储, 其灵感来自 [Howard Chu][hyc_symas] 的 [LMDB 项目][lmdb].
+该项目的目标是为不需要完整的数据库服务器 (例如 Postgres 或 MySQL) 的项目提供一个简单,
+快速且可靠的数据库.
+
 Since Bolt is meant to be used as such a low-level piece of functionality,
 simplicity is key. The API will be small and only focus on getting values
 and setting values. That's it.
+
+由于 Bolt 打算用作这种底层功能, 因此简单性是关键.
+该 API 很小, 仅专注于获取值和设置值. 而已.
 
 [hyc_symas]: https://twitter.com/hyc_symas
 [lmdb]: http://symas.com/mdb/
@@ -21,22 +28,39 @@ consistency and thread safety. Bolt is currently used in high-load production
 environments serving databases as large as 1TB. Many companies such as
 Shopify and Heroku use Bolt-backed services every day.
 
+Bolt 稳定, API 固定, 文件格式固定.
+完整的单元测试覆盖范围和随机的黑盒测试用于确保数据库一致性和线程安全性.
+目前, Bolt 用于高负载的生产环境中, 服务于 1TB 的数据库.
+Shopify 和 Heroku 等许多公司每天都使用 Bolt 支持的服务.
+
 ## A message from the author
 
 > The original goal of Bolt was to provide a simple pure Go key/value store and to
 > not bloat the code with extraneous features. To that end, the project has been
 > a success. However, this limited scope also means that the project is complete.
+>
+> Bolt 的最初目标是提供一个简单的纯 Go key/value 存储. 并且不使用多余的功能来膨胀代码.
+> 为此, 该项目取得了成功. 但是, 这种有限的范围也意味着该项目已经完成.
 > 
 > Maintaining an open source database requires an immense amount of time and energy.
 > Changes to the code can have unintended and sometimes catastrophic effects so
 > even simple changes require hours and hours of careful testing and validation.
 >
+> 维护开源数据库需要大量的时间和精力. 更改代码可能会产生意想不到的后果,
+> 有时甚至会造成灾难性的后果, 因此, 即使是简单的更改也需要数小时和数小时的仔细测试和验证.
+>
 > Unfortunately I no longer have the time or energy to continue this work. Bolt is
 > in a stable state and has years of successful production use. As such, I feel that
 > leaving it in its current state is the most prudent course of action.
 >
+> 不幸的是, 我不再有时间或精力继续这项工作. Bolt 处于稳定状态, 已成功使用多年.
+> 因此, 我认为将其保持当前状态是最明智的选择.
+>
 > If you are interested in using a more featureful version of Bolt, I suggest that
 > you look at the CoreOS fork called [bbolt](https://github.com/coreos/bbolt).
+>
+> 如果您有兴趣使用功能更强大的 Bolt 版本, 建议您查看一下名为
+> [bbolt](https://github.com/coreos/bbolt) 的 CoreOS 分支.
 
 - Ben Johnson ([@benbjohnson](https://twitter.com/benbjohnson))
 
@@ -119,6 +143,10 @@ cannot open the same database at the same time. Opening an already open Bolt
 database will cause it to hang until the other process closes it. To prevent
 an indefinite wait you can pass a timeout option to the `Open()` function:
 
+请注意, Bolt 在数据文件上获得了文件锁, 因此多个进程无法同时打开同一数据库.
+打开一个已经打开的 Bolt 数据库将使其挂起, 直到另一个进程将其关闭. 为了防止无限期等待,
+您可以将超时选项传递给 `Open()` 函数:
+
 ```go
 db, err := bolt.Open("my.db", 0600, &bolt.Options{Timeout: 1 * time.Second})
 ```
@@ -130,15 +158,26 @@ Bolt allows only one read-write transaction at a time but allows as many
 read-only transactions as you want at a time. Each transaction has a consistent
 view of the data as it existed when the transaction started.
 
+Bolt 一次仅允许一个 read-write 事务, 但一次允许任意数量的只读事务.
+每个事务在事务开始时都具有数据的一致视图.
+
 Individual transactions and all objects created from them (e.g. buckets, keys)
 are not thread safe. To work with data in multiple goroutines you must start
 a transaction for each one or use locking to ensure only one goroutine accesses
 a transaction at a time. Creating transaction from the `DB` is thread safe.
 
+单个事务和从中创建的所有对象 (例如 buckets, keys) 都不是线程安全的.
+要使用多个 goroutine 中的数据, 您必须为每个 goroutine
+启动一个事务或使用锁来确保一次只有一个 goroutine 访问一次事务.
+从 `DB` 创建事务是线程安全的.
+
 Read-only transactions and read-write transactions should not depend on one
 another and generally shouldn't be opened simultaneously in the same goroutine.
 This can cause a deadlock as the read-write transaction needs to periodically
 re-map the data file but it cannot do so while a read-only transaction is open.
+
+只读事务和读写事务不应相互依赖, 并且通常不应在同一 goroutine 中同时打开它们.
+这可能会导致死锁, 因为读写事务需要定期重新映射数据文件, 但是在打开只读事务时无法这样做.
 
 
 #### Read-write transactions
@@ -157,9 +196,15 @@ transaction by returning `nil` at the end. You can also rollback the transaction
 at any point by returning an error. All database operations are allowed inside
 a read-write transaction.
 
+在闭包内部, 您具有数据库的一致视图. 您通过在最后返回 nil 来提交事务.
+您还可以通过返回错误随时回滚事务. 在读写事务中允许所有数据库操作.
+
 Always check the return error as it will report any disk failures that can cause
 your transaction to not complete. If you return an error within your closure
 it will be passed through.
+
+始终检查返回错误, 因为它将报告可能导致事务无法完成的所有磁盘故障.
+如果您在关闭内返回错误, 则错误将被传递.
 
 
 #### Read-only transactions
@@ -178,12 +223,18 @@ no mutating operations are allowed within a read-only transaction. You can only
 retrieve buckets, retrieve values, and copy the database within a read-only
 transaction.
 
+您还可以在此闭包内获得一致的数据库视图, 但是, 只读事务中不允许进行任何突变操作.
+您只能在只读事务中检索 buckets, 检索值并复制数据库.
+
 
 #### Batch read-write transactions
 
 Each `DB.Update()` waits for disk to commit the writes. This overhead
 can be minimized by combining multiple updates with the `DB.Batch()`
 function:
+
+每个 `DB.Update()` 等待磁盘提交 writes.
+通过将多个更新与 `DB.Batch()` 函数结合使用, 可以使这种开销最小化:
 
 ```go
 err := db.Batch(func(tx *bolt.Tx) error {
@@ -196,19 +247,29 @@ Concurrent Batch calls are opportunistically combined into larger
 transactions. Batch is only useful when there are multiple goroutines
 calling it.
 
+并发批处理调用有机会合并为较大的事务. Batch 仅在有多个 goroutine 调用它时才有用.
+
 The trade-off is that `Batch` can call the given
 function multiple times, if parts of the transaction fail. The
 function must be idempotent and side effects must take effect only
 after a successful return from `DB.Batch()`.
 
+其代价是, 如果部分事务失败, 则 `Batch` 可以多次调用给定的函数.
+该函数必须是幂等的, 并且副作用必须仅在从 `DB.Batch()` 成功返回后才能生效.
+
 For example: don't display messages from inside the function, instead
 set variables in the enclosing scope:
+
+例如: 不要显示来自函数内部的消息, 而是在封闭范围内设置变量:
 
 ```go
 var id uint64
 err := db.Batch(func(tx *bolt.Tx) error {
 	// Find last key in bucket, decode as bigendian uint64, increment
 	// by one, encode back to []byte, and add new key.
+    //
+    // 找到 bucket 中的最后一个键, 解码为 bigendian uint64,
+    // 加一, 编码回 []byte, 然后添加新键.
 	...
 	id = newValue
 	return nil
@@ -227,9 +288,16 @@ function. These helper functions will start the transaction, execute a function,
 and then safely close your transaction if an error is returned. This is the
 recommended way to use Bolt transactions.
 
+`DB.View()` 和 `DB.Update()` 函数是 `DB.Begin()` 函数的包装.
+这些帮助函数将启动事务, 执行一个函数, 然后在返回错误时安全地关闭您的事务.
+这是使用 Bolt 事务的推荐方法.
+
 However, sometimes you may want to manually start and end your transactions.
 You can use the `DB.Begin()` function directly but **please** be sure to close
 the transaction.
+
+但是, 有时您可能需要手动开始和结束事务. 您可以直接使用 `DB.Begin()` 函数,
+但是**请**确保关闭事务.
 
 ```go
 // Start a writable transaction.
@@ -254,12 +322,17 @@ if err := tx.Commit(); err != nil {
 The first argument to `DB.Begin()` is a boolean stating if the transaction
 should be writable.
 
+`DB.Begin()` 的第一个参数是一个布尔值, 指示事务是否可写.
+
 
 ### Using buckets
 
 Buckets are collections of key/value pairs within the database. All keys in a
 bucket must be unique. You can create a bucket using the `DB.CreateBucket()`
 function:
+
+Buckets 是数据库中 key/value 对的集合. Bucket 中的所有 keys 都必须是唯一的.
+您可以使用 `DB.CreateBucket()` 函数创建 bucket:
 
 ```go
 db.Update(func(tx *bolt.Tx) error {
@@ -275,6 +348,10 @@ You can also create a bucket only if it doesn't exist by using the
 `Tx.CreateBucketIfNotExists()` function. It's a common pattern to call this
 function for all your top-level buckets after you open your database so you can
 guarantee that they exist for future transactions.
+
+您也可以使用 `Tx.CreateBucketIfNotExists()` 函数仅在存储桶不存在时创建它.
+在打开数据库后, 对所有顶级 buckets 都调用此函数是一种常见模式,
+因此可以保证它们存在以供将来进行事务.
 
 To delete a bucket, simply call the `Tx.DeleteBucket()` function.
 
@@ -317,9 +394,13 @@ then you must use `copy()` to copy it to another byte slice.
 
 
 ### Autoincrementing integer for the bucket
+
 By using the `NextSequence()` function, you can let Bolt determine a sequence
 which can be used as the unique identifier for your key/value pairs. See the
 example below.
+
+通过使用 `NextSequence()` 函数, 您可以让 Bolt 确定一个序列,
+该序列可用作 key/value 对的唯一标识符. 请参见下面的示例。
 
 ```go
 // CreateUser saves u to the store. The new user ID is set on u once the data is persisted.
@@ -383,6 +464,8 @@ db.View(func(tx *bolt.Tx) error {
 The cursor allows you to move to a specific point in the list of keys and move
 forward or backward through the keys one at a time.
 
+Cursor 使您可以移动到 keys 列表中的特定点, 并一次向前或向后移动 keys.
+
 The following functions are available on the cursor:
 
 ```
@@ -403,6 +486,8 @@ During iteration, if the key is non-`nil` but the value is `nil`, that means
 the key refers to a bucket rather than a value.  Use `Bucket.Bucket()` to
 access the sub-bucket.
 
+在迭代过程中, 如果 key 为 non-`nil`, 但 value 为 nil, 则表示
+key 是指 bucket 而不是 value. 使用 `Bucket.Bucket()` 访问子桶.
 
 #### Prefix scans
 
@@ -448,6 +533,8 @@ db.View(func(tx *bolt.Tx) error {
 
 Note that, while RFC3339 is sortable, the Golang implementation of RFC3339Nano does not use a fixed number of digits after the decimal point and is therefore not sortable.
 
+请注意, 尽管 RFC3339 是可排序的, 但 RFC3339Nano 的 Golang 实现并不使用小数点后的固定位数, 因此无法排序.
+
 
 #### ForEach()
 
@@ -477,6 +564,9 @@ slice.
 You can also store a bucket in a key to create nested buckets. The API is the
 same as the bucket management API on the `DB` object:
 
+您还可以将 bucket 存储在 key 中以创建嵌套 buckets.
+该 API 与 `DB` 对象上的 bucket 管理 API 相同:
+
 ```go
 func (*Bucket) CreateBucket(key []byte) (*Bucket, error)
 func (*Bucket) CreateBucketIfNotExists(key []byte) (*Bucket, error)
@@ -484,6 +574,10 @@ func (*Bucket) DeleteBucket(key []byte) error
 ```
 
 Say you had a multi-tenant application where the root level bucket was the account bucket. Inside of this bucket was a sequence of accounts which themselves are buckets. And inside the sequence bucket you could have many buckets pertaining to the Account itself (Users, Notes, etc) isolating the information into logical groupings.
+
+假设您有一个多租户应用程序, 其中根级别 bucket 是帐户 bucket.
+该 bucket 内部有一系列帐户, 这些帐户本身就是 bucket. 在序列 bucket 中,
+您可能有许多与帐户本身相关的 bucket (用户, 便笺等), 将信息分为逻辑分组.
 
 ```go
 
@@ -582,6 +676,9 @@ performs so you can better understand what's going on. By grabbing a snapshot
 of these stats at two points in time we can see what operations were performed
 in that time range.
 
+数据库会保持其执行的许多内部操作的运行计数, 以便您可以更好地了解正在发生的事情.
+通过在两个时间点获取这些统计信息的快照, 我们可以看到在该时间范围内执行了哪些操作.
+
 For example, we could start a goroutine to log stats every 10 seconds:
 
 ```go
@@ -609,6 +706,8 @@ go func() {
 It's also useful to pipe these stats to a service such as statsd for monitoring
 or to provide an HTTP endpoint that will perform a fixed-length sample.
 
+将这些统计信息通过管道传输到诸如 statsd 之类的服务以进行监视或提供将执行固定长度样本的 HTTP 端点也很有用.
+
 
 ### Read-Only Mode
 
@@ -631,6 +730,11 @@ Bolt is able to run on mobile devices by leveraging the binding feature of the
 contain your database logic and a reference to a `*bolt.DB` with a initializing
 constructor that takes in a filepath where the database file will be stored.
 Neither Android nor iOS require extra permissions or cleanup from using this method.
+
+通过利用 [gomobile](https://github.com/golang/mobile) 工具的绑定功能,
+Bolt 可以在移动设备上运行. 创建一个结构, 该结构将包含数据库逻辑和对 `*bolt.DB` 的引用,
+并带有一个初始化构造函数, 该构造函数采用一个将存储数据库文件的文件路径.
+Android 和 iOS 都不需要使用此方法的额外权限或清理.
 
 ```go
 func NewBoltDB(filepath string) *BoltDB {

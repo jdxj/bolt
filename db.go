@@ -183,6 +183,11 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	// if !options.ReadOnly.
 	// The database file is locked using the shared lock (more than one process may
 	// hold a lock at the same time) otherwise (options.ReadOnly is set).
+	//
+	// 锁定文件, 以便在读写模式下使用 Bolt 的其他进程无法同时使用数据库.
+	// 这将导致损坏, 当两个进程将分别写 meta pages 和 free pages.
+	// 如果 !options.ReadOnly, 则数据库文件被独占锁定 (只有一个进程可以获取该锁).
+	// 否则使用共享锁 (不止一个进程可以同时持有一个锁) 锁定数据库文件 (设置 options.ReadOnly).
 	if err := flock(db, mode, !db.readOnly, options.Timeout); err != nil {
 		_ = db.close()
 		return nil, err
