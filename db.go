@@ -310,6 +310,10 @@ func (db *DB) munmap() error {
 // mmapSize determines the appropriate size for the mmap given the current size
 // of the database. The minimum size is 32KB and doubles until it reaches 1GB.
 // Returns an error if the new mmap size is greater than the max allowed.
+//
+// mmapSize 在给定当前数据库大小的情况下为 mmap 确定适当的大小.
+// 最小大小为 32KB, 并翻倍直到达到1GB.
+// 如果新的 mmap 大小大于允许的最大值, 则返回错误.
 func (db *DB) mmapSize(size int) (int, error) {
 	// Double the size from 32KB until 1GB.
 	for i := uint(15); i <= 30; i++ {
@@ -450,17 +454,29 @@ func (db *DB) close() error {
 // will cause the calls to block and be serialized until the current write
 // transaction finishes.
 //
+// Begin 开始新的事务.
+// 可以同时使用多个只读事务, 但一次只能使用一个写事务.
+// 启动多个写事务将导致调用者阻塞并被序列化, 直到当前写事务完成为止.
+//
 // Transactions should not be dependent on one another. Opening a read
 // transaction and a write transaction in the same goroutine can cause the
 // writer to deadlock because the database periodically needs to re-mmap itself
 // as it grows and it cannot do that while a read transaction is open.
 //
+// 事务不应相互依赖. 在同一 goroutine 中打开读事务和写事务可能会导致 writer 死锁,
+// 因为数据库会随着其增长而定期重新内存映射自身, 并且在打开读事务时无法这样做.
+//
 // If a long running read transaction (for example, a snapshot transaction) is
 // needed, you might want to set DB.InitialMmapSize to a large enough value
 // to avoid potential blocking of write transaction.
 //
+// 如果需要长时间运行的读事务 (例如 snapshot 事务), 则可能需要将
+// DB.InitialMmapSize 设置为足够大的值, 以避免潜在地阻止写事务.
+//
 // IMPORTANT: You must close read-only transactions after you are finished or
 // else the database will not reclaim old pages.
+//
+// 重要提示: 完成后必须关闭只读事务, 否则数据库将无法回收旧页面.
 func (db *DB) Begin(writable bool) (*Tx, error) {
 	if writable {
 		return db.beginRWTx()
@@ -582,6 +598,11 @@ func (db *DB) removeTx(tx *Tx) {
 // Any error that is returned from the function or returned from the commit is
 // returned from the Update() method.
 //
+// Update 在读写托管事务的上下文中执行一个 function.
+// 如果 function 未返回错误, 则提交事务.
+// 如果返回错误, 则会回滚整个事务.
+// 从 function 返回或从提交返回的任何错误均从 Update() 方法返回.
+//
 // Attempting to manually commit or rollback within the function will cause a panic.
 func (db *DB) Update(fn func(*Tx) error) error {
 	t, err := db.Begin(true)
@@ -597,6 +618,7 @@ func (db *DB) Update(fn func(*Tx) error) error {
 	}()
 
 	// Mark as a managed tx so that the inner function cannot manually commit.
+	// 标记为 managed 的 tx, 以使内部 function 无法手动提交.
 	t.managed = true
 
 	// If an error is returned from the function then rollback and return error.
@@ -809,6 +831,9 @@ func (db *DB) meta() *meta {
 	// We have to return the meta with the highest txid which doesn't fail
 	// validation. Otherwise, we can cause errors when in fact the database is
 	// in a consistent state. metaA is the one with the higher txid.
+	//
+	// 我们必须返回 txid 最高的 meta, 它必须通过验证. 否则, 实际上数据库处于一致状态时,
+	// 我们可能会导致错误. metaA 是 txid 较高的那个.
 	metaA := db.meta0
 	metaB := db.meta1
 	if db.meta1.txid > db.meta0.txid {

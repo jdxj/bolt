@@ -53,6 +53,11 @@ type Bucket struct {
 // This is stored as the "value" of a bucket key. If the bucket is small enough,
 // then its root page can be stored inline in the "value", after the bucket
 // header. In the case of inline buckets, the "root" will be 0.
+//
+// bucket 代表 bucket 的文件上表示.
+// 将其存储为 bucket key 的 "value". 如果 bucket 足够小,
+// 则可以将其 root page inline 存储在 bucket header 之后的 "value" 中.
+// 对于 inline buckets, "root" 将为0.
 type bucket struct {
 	root     pgid   // page id of the bucket's root-level page
 	sequence uint64 // monotonically incrementing, used by NextSequence()
@@ -194,6 +199,10 @@ func (b *Bucket) CreateBucket(key []byte) (*Bucket, error) {
 	// Since subbuckets are not allowed on inline buckets, we need to
 	// dereference the inline page, if it exists. This will cause the bucket
 	// to be treated as a regular, non-inline bucket for the rest of the tx.
+	//
+	// 由于内联 buckets 中不允许使用子 bucket,
+	// 因此我们需要取消引用内联 page (如果存在).
+	// 这将导致该 bucket 在其余的 tx 中被视为常规的非嵌入式 bucket.
 	b.page = nil
 
 	return b.Bucket(key), nil

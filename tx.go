@@ -17,10 +17,17 @@ type txid uint64
 // Read-only transactions can be used for retrieving values for keys and creating cursors.
 // Read/write transactions can create and remove buckets and create and remove keys.
 //
+// Tx 表示数据库上的只读或读/写事务.
+// 只读事务可用于检索键的值和创建游标.
+// 读/写事务可以创建和删除 buckets 以及创建和删除 keys.
+//
 // IMPORTANT: You must commit or rollback transactions when you are done with
 // them. Pages can not be reclaimed by the writer until no more transactions
 // are using them. A long running read transaction can cause the database to
 // quickly grow.
+//
+// 重要说明: 完成事务后, 您必须提交或回滚事务. 在没有更多事务使用它们之前, writer 无法回收 pages.
+// 长时间运行的读取事务可能导致数据库快速增长.
 type Tx struct {
 	writable       bool
 	managed        bool
@@ -34,9 +41,16 @@ type Tx struct {
 	// WriteFlag specifies the flag for write-related methods like WriteTo().
 	// Tx opens the database file with the specified flag to copy the data.
 	//
+	// WriteFlag 为与 Write 相关的方法 (如 WriteTo()) 指定标志.
+	// Tx 使用指定的标志打开数据库文件以复制数据.
+	//
 	// By default, the flag is unset, which works well for mostly in-memory
 	// workloads. For databases that are much larger than available RAM,
 	// set the flag to syscall.O_DIRECT to avoid trashing the page cache.
+	//
+	// 默认情况下, 未设置该标志, 这对于大多数内存中的工作负载而言效果很好.
+	// 对于比可用 RAM 大得多的数据库, 请将标志设置为 syscall.O_DIRECT
+	// 以避免浪费页面缓存.
 	WriteFlag int
 }
 
