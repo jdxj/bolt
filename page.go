@@ -156,11 +156,16 @@ func (a pgids) merge(b pgids) pgids {
 
 // mergepgids copies the sorted union of a and b into dst.
 // If dst is too small, it panics.
+//
+// mergepgids 将排序后的 a 和 b 的并集复制到 dst 中.
+// 如果 dst 太小, 它会 panic.
 func mergepgids(dst, a, b pgids) {
 	if len(dst) < len(a)+len(b) {
 		panic(fmt.Errorf("mergepgids bad len %d < %d + %d", len(dst), len(a), len(b)))
 	}
 	// Copy in the opposite slice if one is nil.
+	//
+	// 如果为 nil, 则在相反的切片中复制.
 	if len(a) == 0 {
 		copy(dst, b)
 		return
@@ -180,8 +185,12 @@ func mergepgids(dst, a, b pgids) {
 	}
 
 	// Continue while there are elements in the lead.
+	//
+	// 在 lead 中有元素时继续.
 	for len(lead) > 0 {
 		// Merge largest prefix of lead that is ahead of follow[0].
+		//
+		// 合并 lead 的最大前缀, 该前缀位于 follow[0] 之前.
 		n := sort.Search(len(lead), func(i int) bool { return lead[i] > follow[0] })
 		merged = append(merged, lead[:n]...)
 		if n >= len(lead) {

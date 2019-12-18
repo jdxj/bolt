@@ -408,6 +408,8 @@ func (n *node) spill() error {
 
 // rebalance attempts to combine the node with sibling nodes if the node fill
 // size is below a threshold or if there are not enough keys.
+//
+// 如果 node 填充大小低于阈值或 keys 不足, 则 rebalance 尝试将 node 与兄弟节点合并.
 func (n *node) rebalance() {
 	if !n.unbalanced {
 		return
