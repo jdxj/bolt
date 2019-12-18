@@ -36,6 +36,8 @@ type page struct {
 }
 
 // typ returns a human readable page type string used for debugging.
+//
+// typ 返回人类可读的 page 类型字符串, 用于调试.
 func (p *page) typ() string {
 	if (p.flags & branchPageFlag) != 0 {
 		return "branch"
@@ -50,11 +52,15 @@ func (p *page) typ() string {
 }
 
 // meta returns a pointer to the metadata section of the page.
+//
+// meta 返回指向页面的元数据部分的指针.
 func (p *page) meta() *meta {
 	return (*meta)(unsafe.Pointer(&p.ptr))
 }
 
 // leafPageElement retrieves the leaf node by index
+//
+// leafPageElement 通过 index 检索叶子节点
 func (p *page) leafPageElement(index uint16) *leafPageElement {
 	n := &((*[0x7FFFFFF]leafPageElement)(unsafe.Pointer(&p.ptr)))[index]
 	return n
@@ -82,6 +88,8 @@ func (p *page) branchPageElements() []branchPageElement {
 }
 
 // dump writes n bytes of the page to STDERR as hex output.
+//
+// dump 将 page 的 n 个字节作为十六进制输出写入 STDERR.
 func (p *page) hexdump(n int) {
 	buf := (*[maxAllocSize]byte)(unsafe.Pointer(p))[:n]
 	fmt.Fprintf(os.Stderr, "%x\n", buf)
@@ -94,6 +102,8 @@ func (s pages) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s pages) Less(i, j int) bool { return s[i].id < s[j].id }
 
 // branchPageElement represents a node on a branch page.
+//
+// branchPageElement 表示 branch  page 上的 node.
 type branchPageElement struct {
 	pos   uint32
 	ksize uint32
@@ -107,6 +117,8 @@ func (n *branchPageElement) key() []byte {
 }
 
 // leafPageElement represents a node on a leaf page.
+//
+// leafPageElement 表示 leaf page 上的 node.
 type leafPageElement struct {
 	flags uint32
 	pos   uint32
@@ -127,6 +139,8 @@ func (n *leafPageElement) value() []byte {
 }
 
 // PageInfo represents human readable information about a page.
+//
+// PageInfo 表示有关 page 的人类可读信息.
 type PageInfo struct {
 	ID            int
 	Type          string
