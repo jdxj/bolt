@@ -1,7 +1,6 @@
 package bolt
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 	"testing"
@@ -70,8 +69,4 @@ func TestPgids_merge_quick(t *testing.T) {
 	}, nil); err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestPageHeaderSize(t *testing.T) {
-	fmt.Println(pageHeaderSize)
 }
