@@ -9,7 +9,7 @@ import (
 
 // node represents an in-memory, deserialized page.
 //
-// node 表示一个内存中的反序列化页面.
+// node 表示一个内存中的反序列化 page.
 type node struct {
 	bucket     *Bucket
 	isLeaf     bool
@@ -23,6 +23,8 @@ type node struct {
 }
 
 // root returns the top-level node this node is attached to.
+//
+// root 返回该节点附加到的顶级节点.
 func (n *node) root() *node {
 	if n.parent == nil {
 		return n
@@ -31,6 +33,8 @@ func (n *node) root() *node {
 }
 
 // minKeys returns the minimum number of inodes this node should have.
+//
+// minKeys 返回此 node 应具有的最小 inodes 数.
 func (n *node) minKeys() int {
 	if n.isLeaf {
 		return 1
@@ -39,6 +43,8 @@ func (n *node) minKeys() int {
 }
 
 // size returns the size of the node after serialization.
+//
+// size 返回序列化后 node 的大小.
 func (n *node) size() int {
 	sz, elsz := pageHeaderSize, n.pageElementSize()
 	for i := 0; i < len(n.inodes); i++ {
@@ -51,6 +57,10 @@ func (n *node) size() int {
 // sizeLessThan returns true if the node is less than a given size.
 // This is an optimization to avoid calculating a large node when we only need
 // to know if it fits inside a certain page size.
+//
+// 如果 node 小于给定的大小, 则 sizeLessThan 返回 true.
+// 这是一种优化方案, 可以避免在我们只需要知道一个大 node
+// 是否适合某个 page 大小时就可以计算出一个大 node.
 func (n *node) sizeLessThan(v int) bool {
 	sz, elsz := pageHeaderSize, n.pageElementSize()
 	for i := 0; i < len(n.inodes); i++ {
@@ -64,6 +74,8 @@ func (n *node) sizeLessThan(v int) bool {
 }
 
 // pageElementSize returns the size of each page element based on the type of node.
+//
+// pageElementSize 根据 node 的类型返回每个 page element 的大小.
 func (n *node) pageElementSize() int {
 	if n.isLeaf {
 		return leafPageElementSize
@@ -80,6 +92,8 @@ func (n *node) childAt(index int) *node {
 }
 
 // childIndex returns the index of a given child node.
+//
+// childIndex 返回给定子节点的索引.
 func (n *node) childIndex(child *node) int {
 	index := sort.Search(len(n.inodes), func(i int) bool { return bytes.Compare(n.inodes[i].key, child.key) != -1 })
 	return index
@@ -91,6 +105,8 @@ func (n *node) numChildren() int {
 }
 
 // nextSibling returns the next node with the same parent.
+//
+// nextSibling 返回具有相同父节点的下一个节点.
 func (n *node) nextSibling() *node {
 	if n.parent == nil {
 		return nil
@@ -128,6 +144,8 @@ func (n *node) put(oldKey, newKey, value []byte, pgid pgid, flags uint32) {
 	index := sort.Search(len(n.inodes), func(i int) bool { return bytes.Compare(n.inodes[i].key, oldKey) != -1 })
 
 	// Add capacity and shift nodes if we don't have an exact match and need to insert.
+	//
+	// 如果我们不完全匹配并需要插入, 请添加容量并移动节点.
 	exact := (len(n.inodes) > 0 && index < len(n.inodes) && bytes.Equal(n.inodes[index].key, oldKey))
 	if !exact {
 		n.inodes = append(n.inodes, inode{})
@@ -160,6 +178,8 @@ func (n *node) del(key []byte) {
 }
 
 // read initializes the node from a page.
+//
+// read 从 page 初始化节点.
 func (n *node) read(p *page) {
 	n.pgid = p.id
 	n.isLeaf = ((p.flags & leafPageFlag) != 0)
@@ -181,6 +201,8 @@ func (n *node) read(p *page) {
 	}
 
 	// Save first key so we can find the node in the parent when we spill.
+	//
+	// 保存第一个 key, 以便在溢出时可以在父级中找到该 node.
 	if len(n.inodes) > 0 {
 		n.key = n.inodes[0].key
 		_assert(len(n.key) > 0, "read: zero-length node key")
@@ -249,6 +271,9 @@ func (n *node) write(p *page) {
 
 // split breaks up a node into multiple smaller nodes, if appropriate.
 // This should only be called from the spill() function.
+//
+// split (如果适用) 将一个 node 分解为多个较小的 node.
+// 仅应从 spill() 函数调用此函数.
 func (n *node) split(pageSize int) []*node {
 	var nodes []*node
 
@@ -272,6 +297,9 @@ func (n *node) split(pageSize int) []*node {
 
 // splitTwo breaks up a node into two smaller nodes, if appropriate.
 // This should only be called from the split() function.
+//
+// splitTwo 将一个节点分成两个较小的节点 (如果适用).
+// 仅应从 split() 函数调用此函数.
 func (n *node) splitTwo(pageSize int) (*node, *node) {
 	// Ignore the split if the page doesn't have at least enough nodes for
 	// two pages or if the nodes can fit in a single page.
@@ -314,10 +342,16 @@ func (n *node) splitTwo(pageSize int) (*node, *node) {
 // splitIndex finds the position where a page will fill a given threshold.
 // It returns the index as well as the size of the first page.
 // This is only be called from split().
+//
+// splitIndex 查找 page 将填充给定阈值的位置.
+// 返回索引以及第一个 page 的大小.
+// 这只能从 split() 中调用.
 func (n *node) splitIndex(threshold int) (index, sz int) {
 	sz = pageHeaderSize
 
 	// Loop until we only have the minimum number of keys required for the second page.
+	//
+	// 循环, 直到只有第二个 page 所需的最少 key 数量为止.
 	for i := 0; i < len(n.inodes)-minKeysPerPage; i++ {
 		index = i
 		inode := n.inodes[i]
@@ -325,6 +359,9 @@ func (n *node) splitIndex(threshold int) (index, sz int) {
 
 		// If we have at least the minimum number of keys and adding another
 		// node would put us over the threshold then exit and return.
+		//
+		// 如果我们至少有最小数量的 key,
+		// 并且添加另一个节点会使我们超出阈值, 则退出并返回.
 		if i >= minKeysPerPage && sz+elsize > threshold {
 			break
 		}
@@ -338,6 +375,9 @@ func (n *node) splitIndex(threshold int) (index, sz int) {
 
 // spill writes the nodes to dirty pages and splits nodes as it goes.
 // Returns an error if dirty pages cannot be allocated.
+//
+// Spill 将节点写入脏 page, 并随即拆分节点.
+// 如果无法分配脏 page, 则返回错误.
 func (n *node) spill() error {
 	var tx = n.bucket.tx
 	if n.spilled {
@@ -347,6 +387,9 @@ func (n *node) spill() error {
 	// Spill child nodes first. Child nodes can materialize sibling nodes in
 	// the case of split-merge so we cannot use a range loop. We have to check
 	// the children size on every loop iteration.
+	//
+	// 首先 spill 子 node. 在拆分合并的情况下, 子 node 可以实现同级节点,
+	// 因此我们不能使用范围循环. 我们必须在每次循环迭代中检查子代大小.
 	sort.Sort(n.children)
 	for i := 0; i < len(n.children); i++ {
 		if err := n.children[i].spill(); err != nil {
@@ -398,6 +441,9 @@ func (n *node) spill() error {
 
 	// If the root node split and created a new root then we need to spill that
 	// as well. We'll clear out the children to make sure it doesn't try to respill.
+	//
+	// 如果 root node 分裂并创建了新的根, 那么我们也需要对其进行溢出.
+	// 我们会清理 children, 以确保它不会 respill.
 	if n.parent != nil && n.parent.pgid == 0 {
 		n.children = nil
 		return n.parent.spill()
@@ -426,6 +472,8 @@ func (n *node) rebalance() {
 	}
 
 	// Root node has special handling.
+	//
+	// root node 特殊处理.
 	if n.parent == nil {
 		// If root node is a branch and only has one node then collapse it.
 		if !n.isLeaf && len(n.inodes) == 1 {
@@ -513,6 +561,9 @@ func (n *node) rebalance() {
 
 // removes a node from the list of in-memory children.
 // This does not affect the inodes.
+//
+// 从内存中的子代列表中删除一个 node.
+// 这不会影响 inode.
 func (n *node) removeChild(target *node) {
 	for i, child := range n.children {
 		if child == target {
@@ -524,6 +575,9 @@ func (n *node) removeChild(target *node) {
 
 // dereference causes the node to copy all its inode key/value references to heap memory.
 // This is required when the mmap is reallocated so inodes are not pointing to stale data.
+//
+// dereference 会使 node 将其所有 inode key/value 引用复制到堆内存.
+// 当重新分配 mmap 时, 这是必需的, 因此 inode 不会指向过时的数据.
 func (n *node) dereference() {
 	if n.key != nil {
 		key := make([]byte, len(n.key))
@@ -555,6 +609,8 @@ func (n *node) dereference() {
 }
 
 // free adds the node's underlying page to the freelist.
+//
+// free 将 node 的底层 page 添加到 freelist.
 func (n *node) free() {
 	if n.pgid != 0 {
 		n.bucket.tx.db.freelist.free(n.bucket.tx.meta.txid, n.bucket.tx.page(n.pgid))
