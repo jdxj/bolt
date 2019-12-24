@@ -45,7 +45,12 @@ type Bucket struct {
 	// the bucket will fill to 50% but it can be useful to increase this
 	// amount if you know that your write workloads are mostly append-only.
 	//
+	// 设置 node 分裂时的填充阈值. 默认情况下, bucket 将占满 50％,
+	// 但是如果您知道您的写入工作负载主要是仅追加操作, 则增加该数量可能很有用.
+	//
 	// This is non-persisted across transactions so it must be set in every Tx.
+	//
+	// 这是跨事务的非持久性, 因此必须在每个 Tx 中设置.
 	FillPercent float64
 }
 
@@ -64,6 +69,8 @@ type bucket struct {
 }
 
 // newBucket returns a new bucket associated with a transaction.
+//
+// newBucket 返回与事务关联的新存储桶.
 func newBucket(tx *Tx) Bucket {
 	var b = Bucket{tx: tx, FillPercent: DefaultFillPercent}
 	if tx.writable {
@@ -91,6 +98,10 @@ func (b *Bucket) Writable() bool {
 // Cursor creates a cursor associated with the bucket.
 // The cursor is only valid as long as the transaction is open.
 // Do not use a cursor after the transaction is closed.
+//
+// Cursor 会创建与 bucket 关联的 cursor.
+// cursor 仅在事务打开时才有效.
+// 关闭事务后不要使用 cursor.
 func (b *Bucket) Cursor() *Cursor {
 	// Update transaction statistics.
 	b.tx.stats.CursorCount++
@@ -105,6 +116,10 @@ func (b *Bucket) Cursor() *Cursor {
 // Bucket retrieves a nested bucket by name.
 // Returns nil if the bucket does not exist.
 // The bucket instance is only valid for the lifetime of the transaction.
+//
+// Bucket 按名称检索嵌套 bucket.
+// 如果 bucket 不存在, 则返回 nil.
+// bucket 实例仅在事务的生命周期内有效.
 func (b *Bucket) Bucket(name []byte) *Bucket {
 	if b.buckets != nil {
 		if child := b.buckets[string(name)]; child != nil {
@@ -132,6 +147,8 @@ func (b *Bucket) Bucket(name []byte) *Bucket {
 
 // Helper method that re-interprets a sub-bucket value
 // from a parent into a Bucket
+//
+// Helper 方法, 该方法将父级的 sub-bucket 值重新解释为 Bucket
 func (b *Bucket) openBucket(value []byte) *Bucket {
 	var child = newBucket(b.tx)
 
@@ -163,6 +180,10 @@ func (b *Bucket) openBucket(value []byte) *Bucket {
 // CreateBucket creates a new bucket at the given key and returns the new bucket.
 // Returns an error if the key already exists, if the bucket name is blank, or if the bucket name is too long.
 // The bucket instance is only valid for the lifetime of the transaction.
+//
+// CreateBucket 在给定的 key 处创建一个新的 bucket, 并返回新的 bucket.
+// 如果 key 已经存在, bucket 名称为空或 bucket 名称过长, 则返回错误.
+// bucket 实例仅在事务的生命周期内有效.
 func (b *Bucket) CreateBucket(key []byte) (*Bucket, error) {
 	if b.tx.db == nil {
 		return nil, ErrTxClosed

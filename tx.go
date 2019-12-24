@@ -148,6 +148,8 @@ func (tx *Tx) ForEach(fn func(name []byte, b *Bucket) error) error {
 }
 
 // OnCommit adds a handler function to be executed after the transaction successfully commits.
+//
+// OnCommit 添加一个处理函数, 该函数将在事务成功提交后执行.
 func (tx *Tx) OnCommit(fn func()) {
 	tx.commitHandlers = append(tx.commitHandlers, fn)
 }
@@ -155,6 +157,9 @@ func (tx *Tx) OnCommit(fn func()) {
 // Commit writes all changes to disk and updates the meta page.
 // Returns an error if a disk write error occurs, or if Commit is
 // called on a read-only transaction.
+//
+// Commit将所有更改写入磁盘并更新meta页面。
+// 如果发生磁盘写入错误, 或者在只读事务上调用 Commit, 则返回 error.
 func (tx *Tx) Commit() error {
 	_assert(!tx.managed, "managed tx commit not allowed")
 	if tx.db == nil {
@@ -582,6 +587,9 @@ func (tx *Tx) writeMeta() error {
 
 // page returns a reference to the page with a given id.
 // If page has been written to then a temporary buffered page is returned.
+//
+// page 返回具有给定 id 的 page 引用.
+// 如果 page 已被写入，则返回一个临时的缓冲页面.
 func (tx *Tx) page(id pgid) *page {
 	// Check the dirty pages first.
 	if tx.pages != nil {
@@ -595,6 +603,8 @@ func (tx *Tx) page(id pgid) *page {
 }
 
 // forEachPage iterates over every page within a given page and executes a function.
+//
+// forEachPage 遍历给定页面内的每个页面并执行一个函数.
 func (tx *Tx) forEachPage(pgid pgid, depth int, fn func(*page, int)) {
 	p := tx.page(pgid)
 
